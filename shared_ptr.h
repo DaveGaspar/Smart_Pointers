@@ -8,14 +8,20 @@ class shared_ptr
 private:
 	class Control_Block
 	{
+	public:
+		T* m_ptr;
 	private:
 		unsigned int m_count;
 	public:
 		Control_Block(): m_count(1){
-
+			m_ptr = nullptr;
+		}
+		Control_Block(T* t): m_count(1){
+			m_ptr = t;
 		}
 		~Control_Block(){
-			
+			delete m_ptr;
+			m_ptr = nullptr;
 		}
 
 		Control_Block(const Control_Block&) = delete;
@@ -40,17 +46,13 @@ private:
 		}
 	};
 
-	T* m_ptr;
 	Control_Block* m_cb_ptr;
-
 	
 private:
 	void release(){
 		if (nullptr != m_cb_ptr){
 			if (0 == (*m_cb_ptr)--){
-				delete m_ptr;
 				delete m_cb_ptr;
-				m_ptr = nullptr;
 				m_cb_ptr = nullptr;
 			}
 		}
@@ -58,12 +60,11 @@ private:
 
 public:
 	shared_ptr(){
-		m_ptr = nullptr;
 		m_cb_ptr = nullptr;
 	}
 
-	explicit shared_ptr(T* t): m_ptr(t){
-		m_cb_ptr = new Control_Block;
+	explicit shared_ptr(T* t){
+		m_cb_ptr = new Control_Block(t);
 	}
 
 	~shared_ptr(){
@@ -71,7 +72,6 @@ public:
 	}
 
 	shared_ptr(const shared_ptr& obj){
-		this->m_ptr = obj.m_ptr;
 		this->m_cb_ptr = obj.m_cb_ptr;
 		if (nullptr != obj.m_cb_ptr){
 			(*m_cb_ptr)++;
@@ -80,7 +80,6 @@ public:
 	shared_ptr& operator = (const shared_ptr& obj){
 		if (this != &obj) {
             release();
-            m_ptr = obj.m_ptr;
             m_cb_ptr = obj.m_cb_ptr;
             if (m_cb_ptr != nullptr) {
                 (*m_cb_ptr)++;
@@ -90,31 +89,27 @@ public:
 	}
 
 	shared_ptr(shared_ptr&& obj){
-		this->m_ptr = obj.m_ptr;
 		this->m_cb_ptr = obj.m_cb_ptr;
-		obj.m_ptr = nullptr;
 		obj.m_cb_ptr = nullptr;
 	}
 
 	shared_ptr& operator =(shared_ptr&& obj){
 		if (this != &obj){
 			release();
-			this->m_ptr = obj.m_ptr;
 			this->m_cb_ptr = obj.m_cb_ptr;
-			obj.m_ptr = nullptr;
 			obj.m_cb_ptr = nullptr;
 		}
 		return *this;
 	}
 public:
 	T* operator ->(){
-		return m_ptr; 
+		return m_cb_ptr->m_ptr; 
 	}
 	T& operator *(){
-		return *m_ptr; 
+		return *(m_cb_ptr->m_ptr); 
 	}
 	T* get() const{
-		return m_ptr; 
+		return m_cb_ptr->m_ptr; 
 	}
 	unsigned int use_count(){
 		return m_cb_ptr->get_count();
